@@ -444,17 +444,16 @@ sudo ufw status
 
 ## Nextcloud Screenshots
 
-**Admin setup for Nextcloud**:
 ![Admin Setup](assets/screenshots/Account%20Admin%20Setup.png)
 
-**Nextcloud applications displayed as optional**:
+
 ![Apps](assets/screenshots/Nextcloud-Recommended%20Apps.png)
 
-**Nextcloud files displayed as optional**:
+
 ![Files](assets/screenshots/Recommend%20Files.png)
 
-**Nextcloud warnings displayed to troubleshoot**:
+
 ![Warnings](assets/screenshots/Security%20and%20Setup%20Warnings.png)
 
-**Tailscale certificate showing private secure connection**:
+
 ![SSL](assets/screenshots/Tailscale%20private%20certificate.png)
