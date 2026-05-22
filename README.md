@@ -448,13 +448,13 @@ sudo ufw status
 ![Admin Setup](assets/screenshots/Account%20Admin%20Setup.png)
 
 **Recommended Apps from Nextcloud display**:
-![Apps](assets/screenshots/Nextcloud--Recommended-Apps.png)
+![Apps](assets/screenshots/Nextcloud%%20Recommended%20Apps.png)
 
 **Recommended Files from Nextcloud display**:
-![Files](assets/screenshots/Recommend-Files.png)
+![Files](assets/screenshots/Recommend%20Files.png)
 
 **Security and Setup Warnings from Nextcloud**:
-![Warnings](assets/screenshots/Security-and-Setup-Warnings.png)
+![Warnings](assets/screenshots/Security%20and%20Setup%20Warnings.png)
 
 **Tailscale private certificate secure status display**:
-![SSL](assets/screenshots/Tailscale-private-certificate.png)
+![SSL](assets/screenshots/Tailscale%20private%20certificate.png)
