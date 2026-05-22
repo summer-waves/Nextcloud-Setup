@@ -439,3 +439,19 @@ sudo systemctl status tailscaled
 sudo systemctl status redis-server
 sudo ufw status
 ```
+## Nextcloud Screenshots
+
+**Setting up the Nextcloud admin account**:
+![Admin Setup](assets/screenshots/Account-Admin-Setup.png)
+
+**Recommended Apps from Nextcloud display**:
+![Apps](assets/screenshots/Nextcloud-Recommended-Apps.png)
+
+**Recommended Files from Nextcloud display**:
+![Files](assets/screenshots/Recommend-Files.png)
+
+**Security and Setup Warnings from Nextcloud**:
+![Warnings](assets/screenshots/Security-and-Setup-Warnings.png)
+
+**Tailscale private certificate secure status display**:
+![SSL](assets/screenshots/Tailscale-private-certificate.png)
