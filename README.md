@@ -448,7 +448,7 @@ sudo ufw status
 ![Admin Setup](assets/screenshots/Account-Admin-Setup.png)
 
 **Recommended Apps from Nextcloud display**:
-![Apps](assets/screenshots/Nextcloud-Recommended-Apps.png)
+![Apps](assets/screenshots/Nextcloud--Recommended-Apps.png)
 
 **Recommended Files from Nextcloud display**:
 ![Files](assets/screenshots/Recommend-Files.png)
