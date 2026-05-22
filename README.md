@@ -439,6 +439,9 @@ sudo systemctl status tailscaled
 sudo systemctl status redis-server
 sudo ufw status
 ```
+
+---
+
 ## Nextcloud Screenshots
 
 **Setting up the Nextcloud admin account**:
