@@ -228,14 +228,14 @@ map $arg_v $asset_immutable {
 server {
     listen 80;
     listen [::]:80;
-    server_name ip-PRIVATEtail6e461e.ts.net;
+    server_name [YOUR_TAILSCALE_IP].ts.net;
     return 301 https://$server_name$request_uri;
 }
 
 server {
     listen 443 ssl;
     listen [::]:443 ssl;
-    server_name [YOUR_TAILSCALE_IP].tail6e461e.ts.net;
+    server_name [YOUR_TAILSCALE_IP].ts.net;
     server_tokens off;
 
     ssl_certificate     /etc/ssl/certs/[YOUR_TAILSCALE_IP].ts.net.crt;
