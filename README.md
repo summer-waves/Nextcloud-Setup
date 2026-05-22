@@ -445,7 +445,7 @@ sudo ufw status
 ## Nextcloud Screenshots
 
 **Setting up the Nextcloud admin account**:
-![Admin Setup](assets/screenshots/Account-Admin-Setup.png)
+<img width="1919" height="801" alt="image" src="https://github.com/user-attachments/assets/e20cbabc-643e-4f7d-abe6-7087d9d0f24a" />
 
 **Recommended Apps from Nextcloud display**:
 ![Apps](assets/screenshots/Nextcloud--Recommended-Apps.png)
