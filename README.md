@@ -22,6 +22,21 @@ This repository contains the complete terminal command reference and explanation
 
 ---
 
+## 🚦 Critical Deployment Timing: When to Initialize Nextcloud
+
+A major cause of "Code Integrity" errors, "Missing Certificate Keys," and HTTP routing failures is initializing Nextcloud before the underlying infrastructure is strictly configured. 
+
+**Do NOT extract the Nextcloud archive or hit the web installer URL until the following "Pre-Flight" conditions are met:**
+
+1. **Database is Locked:** MariaDB is secured (`mysql_secure_installation`), and the dedicated `nextcloud` database and user are actively mapped.
+2. **PHP is Tuned:** The `/etc/php/8.3/fpm/php.ini` file has been updated to support `512M` memory limits and OPcache parameters. If Nextcloud initializes on default PHP settings, background tasks will immediately time out.
+3. **SSL is Active:** The Tailscale MagicDNS certificates are generated and correctly placed in `/etc/ssl/certs/`. Initializing Nextcloud over plain HTTP will permanently bake unsecured paths into the database, causing redirect loops later.
+4. **Nginx Headers are Strict:** The Nginx virtual host is actively enforcing Strict-Transport-Security (HSTS) and OCM/CalDAV rewrite rules *before* Nextcloud runs its first internal systems check.
+
+**The Golden Rule:** Extract the Nextcloud `.zip` and change the folder permissions (`chown -R www-data:www-data`) as the **absolute final step** before opening your web browser to finish the setup.
+
+---
+
 ## 🖥️ Instance Specs
 
 | Field | Value |
@@ -161,52 +176,27 @@ EXIT;
 
 ---
 
-## PHASE 6 — Nextcloud Application
+## PHASE 6 — Tailscale VPN & MagicDNS
 
-### Step 14 — Install unzip Utility
-```bash
-sudo apt install unzip -y
-```
-
-### Step 15 — Download Nextcloud
-Downloads the latest stable Nextcloud release.
-```bash
-cd /tmp
-wget https://download.nextcloud.com/server/releases/latest.zip
-```
-
-### Step 16 — Extract & Deploy Nextcloud
-Extracts the zip, moves Nextcloud to `/var/www/nextcloud`, and sets the proper web-server ownership and directory permissions.
-```bash
-unzip latest.zip
-sudo mv nextcloud /var/www/nextcloud
-sudo chown -R www-data:www-data /var/www/nextcloud
-sudo chmod -R 755 /var/www/nextcloud
-```
-
----
-
-## PHASE 7 — Tailscale VPN & MagicDNS
-
-### Step 17 — Install Tailscale
+### Step 14 — Install Tailscale
 Installs Tailscale — a WireGuard-based mesh VPN. Makes the server completely invisible to the public internet.
 ```bash
 curl -fsSL https://tailscale.com/install.sh | sh
 ```
 
-### Step 18 — Authenticate Tailscale
+### Step 15 — Authenticate Tailscale
 ```bash
 sudo tailscale up
 ```
 *ℹ️ MagicDNS and HTTPS Certificates must be enabled in the Tailscale admin console under DNS settings before proceeding.*
 
-### Step 19 — Generate Tailscale HTTPS Certificate
+### Step 16 — Generate Tailscale HTTPS Certificate
 Provisions a browser-trusted TLS certificate for the server’s MagicDNS hostname.
 ```bash
 sudo tailscale cert [your-magicdns-hostname]
 ```
 
-### Step 20 — Move Certificates to System Locations
+### Step 17 — Move Certificates to System Locations
 Moves the certificate and private key to standard system SSL directories and enforces secure access rights.
 ```bash
 sudo mv [hostname].crt /etc/ssl/certs/
@@ -217,15 +207,121 @@ sudo chmod 600 /etc/ssl/private/[hostname].key
 
 ---
 
-## PHASE 8 — Nginx Configuration for Nextcloud
+## PHASE 7 — Nginx Configuration for Nextcloud
 
-### Step 21 — Create Nginx Site Configuration
+### Step 18 — Create Nginx Site Configuration
 Creates the production Nginx config including HTTP-to-HTTPS redirect, SSL certificate paths, PHP-FPM upstream, and security headers.
 ```bash
 sudo nano /etc/nginx/sites-available/nextcloud
 ```
 
-*(Insert the full optimized Nginx server block provided in the documentation here).*
+```nginx
+upstream php-handler {
+    server unix:/run/php/php8.3-fpm.sock;
+}
+
+map $arg_v $asset_immutable {
+    "" "";
+    default ", immutable";
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ip-PRIVATEtail6e461e.ts.net;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name ip-172-31-36-193.tail6e461e.ts.net;
+    server_tokens off;
+
+    ssl_certificate     /etc/ssl/certs/ip-172-31-36-193.tail6e461e.ts.net.crt;
+    ssl_certificate_key /etc/ssl/private/ip-172-31-36-193.tail6e461e.ts.net.key;
+
+    root /var/www/nextcloud;
+    index index.php /index.php$request_uri;
+
+    client_max_body_size 512M;
+    client_body_timeout 300s;
+    client_body_buffer_size 512k;
+
+    fastcgi_buffers 64 4K;
+    fastcgi_hide_header X-Powered-By;
+
+    gzip on;
+    gzip_vary on;
+    gzip_comp_level 4;
+    gzip_min_length 256;
+    gzip_proxied expired no-cache no-store private no_last_modified no_etag auth;
+    gzip_types application/atom+xml text/javascript application/javascript application/json application/ld+json application/manifest+json application/rss+xml application/xhtml+xml application/xml font/opentype image/svg+xml text/css text/plain;
+
+    add_header Referrer-Policy                   "no-referrer"       always;
+    add_header X-Content-Type-Options            "nosniff"           always;
+    add_header X-Frame-Options                   "SAMEORIGIN"        always;
+    add_header X-Permitted-Cross-Domain-Policies "none"              always;
+    add_header X-Robots-Tag                      "noindex, nofollow" always;
+    add_header X-XSS-Protection                  "1; mode=block"     always;
+
+    location = /robots.txt {
+        allow all;
+        log_not_found off;
+        access_log off;
+    }
+
+    location ^~ /.well-known {
+        location = /.well-known/carddav { return 301 /remote.php/dav/; }
+        location = /.well-known/caldav  { return 301 /remote.php/dav/; }
+        location /.well-known/acme-challenge { try_files $uri $uri/ =404; }
+        return 301 /index.php$request_uri;
+    }
+
+    location ~ ^/(?:build|tests|config|lib|3rdparty|templates|data)(?:$|/)  { return 404; }
+    location ~ ^/(?:\.|autotest|occ|issue|indie|db_|console) { return 404; }
+
+    location ~ \.php(?:$|/) {
+        rewrite ^/(?!index|remote|public|cron|core\/ajax\/update|status|ocs\/v[12]|updater\/.+|ocs-provider\/.+) /index.php$request_uri;
+        fastcgi_split_path_info ^(.+?\.php)(/.*)$;
+        set $path_info $fastcgi_path_info;
+        try_files $fastcgi_script_name =404;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $path_info;
+        fastcgi_param HTTPS on;
+        fastcgi_param modHeadersAvailable true;
+        fastcgi_param front_controller_active true;
+        fastcgi_pass php-handler;
+        fastcgi_intercept_errors on;
+        fastcgi_request_buffering off;
+        fastcgi_max_temp_file_size 0;
+    }
+
+    location ~ \.(?:css|js|mjs|svg|gif|png|jpg|ico|wasm|tflite|map|ogg|flac)$ {
+        try_files $uri /index.php$request_uri;
+        add_header Cache-Control "public, max-age=15778463$asset_immutable";
+        access_log off;
+    }
+
+    location ~ \.woff2?$ {
+        try_files $uri /index.php$request_uri;
+        expires 7d;
+        access_log off;
+    }
+
+    location /remote {
+        return 301 /remote.php$request_uri;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php$request_uri;
+    }
+
+    access_log /var/log/nginx/nextcloud_access.log;
+    error_log /var/log/nginx/nextcloud_error.log;
+}
+```
 
 Enable the site and reload Nginx:
 ```bash
@@ -234,6 +330,33 @@ sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl reload nginx
 ```
+
+---
+
+## PHASE 8 — Nextcloud Application Extraction & Deployment
+
+### Step 19 — Install unzip Utility
+```bash
+sudo apt install unzip -y
+```
+
+### Step 20 — Download Nextcloud
+Downloads the latest stable Nextcloud release.
+```bash
+cd /tmp
+wget https://download.nextcloud.com/server/releases/latest.zip
+```
+
+### Step 21 — Extract & Deploy Nextcloud
+Extracts the zip, moves Nextcloud to `/var/www/nextcloud`, and sets the proper web-server ownership and directory permissions. **(This triggers the actual application deployment now that the infrastructure is ready).**
+```bash
+unzip latest.zip
+sudo mv nextcloud /var/www/nextcloud
+sudo chown -R www-data:www-data /var/www/nextcloud
+sudo chmod -R 755 /var/www/nextcloud
+```
+
+*Note: You can now safely navigate to your Tailscale MagicDNS URL in a browser to run the Web Installer.*
 
 ---
 
@@ -258,13 +381,7 @@ sudo ufw enable
 sudo ufw status
 ```
 
-### Step 24 — Run Nextcloud Maintenance Repair
-Fixes database collation issues, repairs invalid shares, and clears caches.
-```bash
-sudo -u www-data php /var/www/nextcloud/occ maintenance:repair --include-expensive
-```
-
-### Step 25 — Install Redis
+### Step 24 — Install Redis & Configure Memcache
 Redis provides memory caching (`memcache.local`) and transactional file locking (`memcache.locking`).
 ```bash
 sudo apt install redis-server -y
@@ -272,7 +389,7 @@ sudo systemctl enable redis-server
 sudo systemctl start redis-server
 ```
 
-### Step 26 — Add Redis & Performance Settings
+### Step 25 — Add Redis & Performance Settings
 ```bash
 sudo nano /var/www/nextcloud/config/config.php
 ```
@@ -288,7 +405,7 @@ Add the caching parameters:
 'default_phone_region' => 'US',
 ```
 
-### Step 27 — Fix PHP Environment Variables & OPcache
+### Step 26 — Fix PHP Environment Variables & OPcache
 
 **Fix 1: PHP environment variables**
 ```bash
@@ -302,16 +419,17 @@ sudo nano /etc/php/8.3/fpm/php.ini
 # Change to: opcache.interned_strings_buffer = 16
 ```
 
-Apply fixes:
+Apply fixes and Run Nextcloud Maintenance Repair:
 ```bash
 sudo systemctl restart php8.3-fpm
+sudo -u www-data php /var/www/nextcloud/occ maintenance:repair --include-expensive
 ```
 
 ---
 
 ## PHASE 10 — Final Verification
 
-### Step 28 — Verify All Services Are Running
+### Step 27 — Verify All Services Are Running
 Final health check to confirm all services are active and enabled.
 ```bash
 sudo systemctl status nginx
@@ -321,28 +439,3 @@ sudo systemctl status tailscaled
 sudo systemctl status redis-server
 sudo ufw status
 ```
-
----
-
-## ✅ Final Stack Summary
-
-| # | Component | Version | Status | Purpose |
-| :--- | :--- | :--- | :--- | :--- |
-| **1** | Ubuntu LTS | 24.04.4 | ✅ Active | Server OS |
-| **2** | Nginx | 1.24.0 | ✅ Running | Web server / reverse proxy |
-| **3** | PHP-FPM | 8.3.6 | ✅ Running | PHP application runtime |
-| **4** | MariaDB | 10.11.14 | ✅ Running | Relational database |
-| **5** | Nextcloud | 33.0.3 | ✅ Installed | Private cloud application |
-| **6** | Tailscale | 1.96.4 | ✅ Connected | VPN / MagicDNS / HTTPS certs |
-| **7** | Redis | 7.0.15 | ✅ Running | Memcache & file locking |
-| **8** | UFW Firewall | Built-in | ✅ Active | Network traffic control |
-| **9** | Cron Job | System | ✅ Active | Background task scheduler |
-
----
-
-### 🔒 Security Notes
-* This Nextcloud instance is accessible exclusively through Tailscale VPN.
-* All public ports (80/443) are blocked by UFW.
-* Access requires Tailscale to be installed and authenticated on the client device.
-* The HTTPS certificate is issued by Tailscale and valid for the MagicDNS hostname only.
-* Sensitive identifiers have been intentionally omitted from this document.
