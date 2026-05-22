@@ -235,11 +235,11 @@ server {
 server {
     listen 443 ssl;
     listen [::]:443 ssl;
-    server_name ip-172-31-36-193.tail6e461e.ts.net;
+    server_name [YOUR_TAILSCALE_IP].tail6e461e.ts.net;
     server_tokens off;
 
-    ssl_certificate     /etc/ssl/certs/ip-172-31-36-193.tail6e461e.ts.net.crt;
-    ssl_certificate_key /etc/ssl/private/ip-172-31-36-193.tail6e461e.ts.net.key;
+    ssl_certificate     /etc/ssl/certs/[YOUR_TAILSCALE_IP].ts.net.crt;
+    ssl_certificate_key /etc/ssl/private/[YOUR_TAILSCALE_IP].ts.net.key;
 
     root /var/www/nextcloud;
     index index.php /index.php$request_uri;
