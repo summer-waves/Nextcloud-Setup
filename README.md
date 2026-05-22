@@ -445,9 +445,7 @@ sudo ufw status
 ## Nextcloud Screenshots
 
 ![Admin Setup](assets/screenshots/Account%20Admin%20Setup.png)
-![Apps](assets/screenshots/Nextcloud%20%Recommended%20Apps.png)
+![Apps](assets/screenshots/Nextcloud%20-Recommended%20Apps.png)
 ![Files](assets/screenshots/Recommend%20Files.png)
 ![Warnings](assets/screenshots/Security%20and%20Setup%20Warnings.png)
-
-**Tailscale private certificate secure status display**:
 ![SSL](assets/screenshots/Tailscale%20private%20certificate.png)
