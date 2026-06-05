@@ -1,4 +1,4 @@
-# Nextcloud on AWS — Ubuntu Server Setup Documentation
+# NebulaStack — Private Self-Hosted Cloud
 
 **Generated:** May 2026 | **Platform:** AWS EC2 — `us-east-1` (N. Virginia)
 
